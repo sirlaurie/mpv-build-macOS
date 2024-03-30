@@ -18,7 +18,7 @@ A set of scripts that help build [mpv](https://mpv.io) with [MoltenVK](https://g
 2. Clone the repository:
 
    ```sh
-   git clone "https://github.com/m154k1/mpv-build-macOS.git"
+   git clone "https://github.com/sirlaurie/mpv-build-macOS"
    cd mpv-build-macOS
    ```
 
