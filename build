@@ -11,7 +11,7 @@ error_report() {
 trap 'error_report $LINENO' ERR
 
 WORKDIR=$(pwd)
-prefix="~/local"
+prefix="~/.local"
 with_bundle=0
 
 if [ "$(uname -s)" != "Darwin" ]; then
@@ -55,10 +55,10 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-rm -rf "$prefix/include"
-rm -rf "$prefix/lib"
-rm -rf "$prefix/loader"
-rm -rf "$prefix/share"
+rm -rf "${prefix%/}/include"
+rm -rf "${prefix%/}/lib"
+rm -rf "${prefix%/}/loader"
+rm -rf "${prefix%/}/share"
 
 # Install homebrew if not found
 if ! command -v brew &> /dev/null; then
