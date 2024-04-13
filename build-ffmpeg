@@ -57,6 +57,7 @@ cd "${srcdir}"
   --enable-libx265 \
   --enable-libxml2 \
   --enable-libzimg \
+  --enable-pthreads \
   --enable-openssl \
   --disable-static \
   --disable-debug \
