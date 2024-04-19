@@ -24,9 +24,7 @@ builddir="Package/Latest/MoltenVK/dylib/macOS"
 
 cd "$srcdir"
 
-./fetchDependencies \
-  --macos \
-  --v-headers-root $pkgdir
+./fetchDependencies --macos
 
 make macos MVK_CONFIG_LOG_LEVEL=2
 
