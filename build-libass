@@ -21,30 +21,29 @@ source utils/pkg-import
 pkgname="libass"
 pkgdir="$1"
 srcdir="src/libass"
+builddir="${TMPDIR:-/tmp}/build.${pkgname}"
 
+rm -rf "${builddir}"
 import_local_pkg $pkgdir
 
-export CFLAGS="${CFLAGS} -O3 -flto=thin"
-
-cd "${srcdir}"
-
-./autogen.sh
-
-./configure \
+meson setup "${builddir}" "${srcdir}" \
   --prefix="${pkgdir}" \
-  --enable-shared \
-  --disable-static \
-  --disable-dependency-tracking \
-  --enable-coretext \
-  --enable-libunibreak \
-  --enable-asm \
-  --disable-fontconfig \
+  -Ddefault_library=shared \
+  -Dwrap_mode=nodownload \
+  -Dbuildtype=release \
+  -Db_lto=true \
+  -Db_lto_mode=thin \
+  -Dcoretext=enabled \
+  -Dasm=enabled \
+  -Dlibunibreak=enabled \
+  -Dfontconfig=disabled \
+  -Ddirectwrite=disabled \
   # "$@"
 
-make -j$(sysctl -n hw.physicalcpu)
+meson compile -C "${builddir}"
 
-# rm -rf "${pkgdir}"
+meson install -C "${builddir}"
 
-make install
+rm -rf "${builddir}"
 
 # vi:set ts=2 sw=2 et:
