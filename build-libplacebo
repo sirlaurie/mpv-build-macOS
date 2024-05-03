@@ -24,11 +24,6 @@ srcdir="src/libplacebo"
 builddir="${TMPDIR:-/tmp}/build.$pkgname"
 
 import_local_pkg $pkgdir
-echo $PKG_CONFIG_PATH
-echo $CPPFLAGS
-echo $LDFLAGS
-# import_homebrew_pkg glslang
-# import_homebrew_pkg spirv-tools
 
 rm -rf "${builddir}"
 
