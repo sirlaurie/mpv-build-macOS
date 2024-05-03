@@ -69,7 +69,6 @@ graph TD;
    mpv-->vulkan;
    mpv-->libass;
    libplacebo-->vulkan;
-   moltenvk-->vulkan;
    vulkan-->moltenvk;
    ffmpeg-->libplacebo;
    ffmpeg-->vulkan;
