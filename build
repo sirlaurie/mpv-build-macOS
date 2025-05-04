@@ -11,6 +11,7 @@ error_report() {
 trap 'error_report $LINENO' ERR
 
 WORKDIR=$(pwd)
+pkm=brew
 prefix="~/.local"
 with_bundle=0
 
@@ -89,8 +90,8 @@ for dep in "${depsArr[@]}"; do
   if echo "$installed" | grep -q "$dep"; then
     echo "${GREEN}$dep is already installed.${NC}"
   else
-    echo -n "${GRAY}Installing $dep ... ${NC}"
-    errvar=$(brew install $dep > /dev/null) && echo "${GREEN} Done${NC}" || { echo "${WHITE} failed.${NC}"; echo $errvar; exit 1 }
+    echo -n "${GREEN}Installing $dep ... ${NC}"
+    errvar=$($pkm install $dep > /dev/null) && echo "${GREEN} Done${NC}" || { echo "${WHITE} failed.${NC}"; echo $errvar; exit 1 }
   fi
 done
 

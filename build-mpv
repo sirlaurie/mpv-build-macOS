@@ -29,7 +29,7 @@ import_local_pkg $pkgdir
 import_homebrew_pkg libarchive
 
 rm -rf "${builddir}"
-sed -i -e 's/UNKNOWN/1/g' "$srcdir/VERSION"
+sed -i -e 's/UNKNOWN/1/g' "$srcdir/MPV_VERSION"
 
 meson setup "${builddir}" "${srcdir}" \
   --prefix="${pkgdir}" \
@@ -58,6 +58,6 @@ fi
 
 # rm -rf "${builddir}"
 cd "$(dirname "$0")"
-git -C "$srcdir" restore VERSION
-git -C "$srcdir" clean -f VERSION-e
+git -C "$srcdir" restore MPV_VERSION
+git -C "$srcdir" clean -f MPV_VERSION-e
 # vi:set ts=2 sw=2 et:
