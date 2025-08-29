@@ -32,13 +32,14 @@ rm -rf "${builddir}"
 sed -i -e 's/UNKNOWN/1/g' "$srcdir/MPV_VERSION"
 
 meson setup "${builddir}" "${srcdir}" \
+  -Dmacos-touchbar=disabled \
   --prefix="${pkgdir}" \
+  -Dmanpage-build=disabled \
   -Dwrap_mode=nodownload \
   -Dbuildtype=release \
   -Db_lto=true \
   -Db_lto_mode=thin \
   -Dlua=luajit \
-  -Dmacos-touchbar=disabled \
   # "$@"
 
 meson compile -j$(sysctl -n hw.physicalcpu) -C "${builddir}"
