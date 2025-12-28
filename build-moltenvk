@@ -23,7 +23,7 @@ srcdir="src/MoltenVK"
 builddir="Package/Latest/MoltenVK/dylib/macOS"
 
 cd "$srcdir"
-
+git checkout v1.4.1
 ./fetchDependencies --macos
 
 make macos MVK_CONFIG_LOG_LEVEL=2

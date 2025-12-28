@@ -22,16 +22,37 @@ pkgname="mpv"
 pkgdir="$1"
 with_bundle="$2"
 srcdir="src/mpv"
-builddir="$srcdir/build"
+worktree_basename="mpv-worktree-build"
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+srcdir_abs="$script_dir/$srcdir"
+worktree_dir="$script_dir/src/_worktrees/${worktree_basename}"
+worktree_srcdir="${worktree_dir}"
+builddir="$worktree_srcdir/build"
+fixed_version_suffix="1"
+base_version="$(sed -E 's/-UNKNOWN$//' "$srcdir_abs/MPV_VERSION")"
+fixed_version="${base_version}-${fixed_version_suffix}"
 
-import_local_pkg $pkgdir
+import_local_pkg "$pkgdir"
 
 import_homebrew_pkg libarchive
 
-rm -rf "${builddir}"
-sed -i -e 's/UNKNOWN/1/g' "$srcdir/MPV_VERSION"
+cleanup_worktree() {
+  git -C "$srcdir_abs" worktree remove --force "$script_dir/../mpv-worktree-build" >/dev/null 2>&1 || true
+  rm -rf "$script_dir/../mpv-worktree-build" >/dev/null 2>&1 || true
 
-meson setup "${builddir}" "${srcdir}" \
+  git -C "$srcdir_abs" worktree remove --force "$worktree_dir" >/dev/null 2>&1 || true
+  rm -rf "$worktree_dir" >/dev/null 2>&1 || true
+}
+trap cleanup_worktree EXIT
+
+cleanup_worktree
+mkdir -p "$(dirname "$worktree_dir")"
+
+rm -rf "${builddir}"
+
+git -C "$srcdir_abs" worktree add --force "$worktree_dir" HEAD
+
+meson setup "${builddir}" "${worktree_srcdir}" \
   -Dmacos-touchbar=disabled \
   --prefix="${pkgdir}" \
   -Dmanpage-build=disabled \
@@ -44,21 +65,27 @@ meson setup "${builddir}" "${srcdir}" \
 
 meson compile -j$(sysctl -n hw.physicalcpu) -C "${builddir}"
 
-# rm -rf "${pkgdir}"
-
 meson install -C "${builddir}" --tags runtime,devel
 
 if [ "$with_bundle" -eq 1 ]; then
-  cd $srcdir
+  cd "$worktree_srcdir"
   ./TOOLS/osxbundle.py -s build/mpv
+
+  info_plist="build/mpv.app/Contents/Info.plist"
+
+  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${fixed_version}" "${info_plist}" 2>/dev/null || \
+  /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${fixed_version}" "${info_plist}"
+
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${fixed_version}" "${info_plist}" 2>/dev/null || \
+  /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string ${fixed_version}" "${info_plist}"
+
+  codesign --force -s - "build/mpv.app" >/dev/null 2>&1 || true
+
   if [ -d "/Applications/mpv.app" ]; then
     rm -rf /Applications/mpv.app
   fi
   mv build/mpv.app /Applications
 fi
 
-# rm -rf "${builddir}"
-cd "$(dirname "$0")"
-git -C "$srcdir" restore MPV_VERSION
-git -C "$srcdir" clean -f MPV_VERSION-e
+cleanup_worktree
 # vi:set ts=2 sw=2 et:
