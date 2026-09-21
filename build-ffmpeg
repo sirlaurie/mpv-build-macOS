@@ -49,7 +49,6 @@ cd "${srcdir}"
   --enable-libmp3lame \
   --enable-libopus \
   --enable-libplacebo \
-  --enable-libshaderc \
   --enable-libsvtav1 \
   --enable-libvorbis \
   --enable-libvpx \
@@ -63,7 +62,6 @@ cd "${srcdir}"
   --disable-static \
   --disable-debug \
   --disable-doc \
-  --disable-sdl2 \
   --disable-libxcb \
   --disable-xlib \
   --disable-hwaccels \

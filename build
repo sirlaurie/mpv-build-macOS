@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-set -e
+set -eo pipefail
 
 PS4='+ ${BASH_SOURCE}:${LINENO}: '
 
@@ -10,10 +10,12 @@ error_report() {
 
 trap 'error_report $LINENO' ERR
 
-WORKDIR=$(pwd)
+WORKDIR=${0:A:h}
+cd "$WORKDIR"
 pkm=brew
-prefix="~/.local"
+prefix="$HOME/.local"
 with_bundle=0
+force_rebuild=0
 
 if [ "$(uname -s)" != "Darwin" ]; then
   echo "Only support macOS now."
@@ -27,18 +29,25 @@ GRAY='\033[37;40m'
 NC='\033[0m'
 
 usage() {
-  echo "Usage: $0 [-p|--prefix <prefix>] [-b|--with-bundle] [-h|--help]"
+  echo "Usage: $ZSH_ARGZERO [-p|--prefix <prefix>] [-b|--with-bundle] [--rebuild] [-h|--help]"
 }
 
 # parse flag
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     -p|--prefix)
+      if [[ $# -lt 2 || -z "$2" || "$2" == -* ]]; then
+        echo "Error: --prefix requires a path" >&2
+        exit 1
+      fi
       prefix="$2"
       shift
       ;;
     -b|--with-bundle)
       with_bundle=1
+      ;;
+    --rebuild)
+      force_rebuild=1
       ;;
     -h|--help)
       usage
@@ -55,19 +64,15 @@ while [[ "$#" -gt 0 ]]; do
   esac
   shift
 done
-
-rm -rf "${prefix%/}/include"
-rm -rf "${prefix%/}/lib"
-rm -rf "${prefix%/}/loader"
-rm -rf "${prefix%/}/share"
+prefix=${prefix:A}
 
 # Install homebrew if not found
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin"
 if ! command -v brew &> /dev/null; then
   echo -n "${GRAY}brew is currently not found on your system. installing ... ${NC}"
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" &> /dev/null && echo "${GREEN}Done${NC}"
 fi
 
-source "$ZDOTDIR/.zshrc" || source "$HOME/.zshrc" || source "$HOME/.zshenv"
 export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK
 
 if [ ! -e $prefix ]; then
@@ -97,11 +102,28 @@ done
 
 sudo chown -R $(whoami):staff "$prefix"
 
+state_dir="$prefix/.mpv-build-state"
+mkdir -p "$state_dir"
+build_context=$(
+  uname -m
+  sw_vers --productVersion
+  xcodebuild -version
+  xcrun clang --version
+  xcrun --sdk macosx --show-sdk-path
+  xcrun --sdk macosx --show-sdk-version
+  # ponytail: Homebrew changes rebuild all components; split formula inputs if this becomes costly.
+  brew list --versions --formula
+  shasum -a 256 homebrew/build.txt homebrew/runtime.txt
+  for variable in PATH CC CXX CFLAGS CXXFLAGS CPPFLAGS LDFLAGS PKG_CONFIG_PATH SDKROOT DEVELOPER_DIR; do
+    print -r -- "$variable=${(P)variable}"
+  done
+)
+source "$WORKDIR/utils/incremental-build.zsh"
+
 check_and_clone() {
   if [ -d "$WORKDIR/src/$1" ]; then
     cd "$WORKDIR/src/$1"
     if [ "$(git config --get remote.origin.url)" = "$2" ]; then
-      git clean -fdx
       git pull --recurse-submodules
     else
       echo "${WHITE}$WORKDIR/src/$1 is not official repo, please rename or remove it.${NC}" && exit 1
@@ -114,28 +136,26 @@ check_and_clone() {
 
 check_and_clone "Vulkan-Loader" "https://github.com/KhronosGroup/Vulkan-Loader.git"
 check_and_clone "Vulkan-Headers" "https://github.com/KhronosGroup/Vulkan-Headers.git"
-$WORKDIR/build-vulkan "$prefix"
+build_component vulkan "Vulkan-Loader Vulkan-Headers" "" "lib/libvulkan.dylib share/vulkan/registry/vk.xml"
 
 check_and_clone "MoltenVK" "https://github.com/KhronosGroup/MoltenVK.git"
-$WORKDIR/build-moltenvk "$prefix"
+build_component moltenvk "MoltenVK" "" "lib/libMoltenVK.dylib share/vulkan/icd.d/MoltenVK_icd.json"
 
 check_and_clone "libplacebo" "https://code.videolan.org/videolan/libplacebo.git"
-$WORKDIR/build-libplacebo "$prefix"
+build_component libplacebo "libplacebo" "vulkan" "lib/libplacebo.dylib"
 
 check_and_clone "dav1d" "https://code.videolan.org/videolan/dav1d.git"
-$WORKDIR/build-dav1d "$prefix"
+build_component dav1d "dav1d" "" "lib/libdav1d.dylib"
 
 check_and_clone "freetype" "https://gitlab.freedesktop.org/freetype/freetype.git"
 check_and_clone "harfbuzz" "https://github.com/harfbuzz/harfbuzz.git"
-$WORKDIR/build-freetype --prefix="$prefix" -Dharfbuzz=disabled
-$WORKDIR/build-harfbuzz "$prefix"
-$WORKDIR/build-freetype --prefix="$prefix"
+build_component fonts "freetype harfbuzz" "" "lib/libfreetype.dylib lib/libharfbuzz.dylib"
 
 check_and_clone "libass" "https://github.com/libass/libass.git"
-$WORKDIR/build-libass "$prefix"
+build_component libass "libass" "fonts" "lib/libass.dylib"
 
 check_and_clone "ffmpeg" "https://git.ffmpeg.org/ffmpeg.git"
-$WORKDIR/build-ffmpeg "$prefix"
+build_component ffmpeg "ffmpeg" "libplacebo vulkan dav1d libass fonts" "bin/ffmpeg bin/ffplay bin/ffprobe lib/libavcodec.dylib"
 
 check_and_clone "mpv" "https://github.com/mpv-player/mpv.git"
-$WORKDIR/build-mpv "$prefix" "$with_bundle"
+build_component mpv "mpv" "ffmpeg libplacebo vulkan moltenvk libass" "bin/mpv"

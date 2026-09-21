@@ -37,9 +37,6 @@ import_local_pkg "$pkgdir"
 import_homebrew_pkg libarchive
 
 cleanup_worktree() {
-  git -C "$srcdir_abs" worktree remove --force "$script_dir/../mpv-worktree-build" >/dev/null 2>&1 || true
-  rm -rf "$script_dir/../mpv-worktree-build" >/dev/null 2>&1 || true
-
   git -C "$srcdir_abs" worktree remove --force "$worktree_dir" >/dev/null 2>&1 || true
   rm -rf "$worktree_dir" >/dev/null 2>&1 || true
 }

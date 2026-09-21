@@ -23,7 +23,7 @@ srcdir="src/MoltenVK"
 builddir="Package/Latest/MoltenVK/dylib/macOS"
 
 cd "$srcdir"
-git checkout v1.4.1
+# git checkout v1.4.1
 ./fetchDependencies --macos
 
 make macos MVK_CONFIG_LOG_LEVEL=2
@@ -37,6 +37,5 @@ mkdir -p "${pkgdir}"/lib "${pkgdir}"/share/vulkan/icd.d
 install -vm755 "${builddir}"/libMoltenVK.dylib "${pkgdir}"/lib
 install -vm644 "${builddir}"/MoltenVK_icd.json "${pkgdir}"/share/vulkan/icd.d
 
-rm -rf ~/.swiftpm
-
+git checkout main
 # vi:set ts=2 sw=2 et:
